@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Image Data Annotation</title>
+
+    <style>
+      *{margin: 0;padding: 0; box-sizing: border-box;}
+      #imageContainer {position: relative; overflow: hidden; border:1px solid #ccc;  }
+      .selectedROI {border: 2px dashed rgb(0, 60, 255); position: absolute; pointer-events: none; cursor: pointer;} 
+      .rowElement {display: flex; align-items: center; margin-left: 8px;}
+
+      .formbox, #addedData{ font-family:Arial; width:700px; margin:20px auto; }
+      .formbox ul{display: flex; list-style:none; padding:0; margin:0; }
+      .formbox ul li{padding: 5px; width: 33.33%;}
+      .inputsec{border:1px solid #ccc; border-radius:4px;width: 100%; padding: 5px 10px; display: block; min-height: 34px;}
+      .savebtn, .addedDataRow button{background: #000; min-height: 34px; padding: 5px 10px; border: none; color: #fff; border-radius: 4px;margin-top: 18px;}
+.addedDataRow button{background: #e35260; margin:0!important; min-height:28px; }
+      #addedData > div{margin-bottom: 5px;}
+      .addedDataRow{display: flex; align-items: center;justify-content:space-between; border: 1px solid #ccc; border-radius: 4px; padding: 4px 10px;}
+
+    </style>
+  </head>
+  <body>
+    <div class="formbox">
+      <ul>
+        <li>
+          <label for="imageInput">Choose Image:</label>
+          <input type="file" class="inputsec" id="imageInput" accept="image/*" onchange="loadImage()" />
+        </li>
+        <li>
+          <label for="variableSelect">Select Variable:</label>
+          <select id="variableSelect" class="inputsec" onchange="changeVariable()">
+            <option value="">--Select--</option>
+            <option value="Barcode">Barcode</option>
+            <option value="Booklet_No_0_9">Booklet_No_0_9</option> 
+            <option value="Booklet_No_1_0">Booklet_No_1_0</option> 
+            <option value="Booklet_No_OCR">"Booklet_No_OCR"</option> 
+
+            <option value="Booklet_Code_Series">Booklet_Code_Series </option>  
+            <option value="College_Code">College_Code</option>
+            <option value="College_Code_OCR">College_Code_OCR</option>
+
+            <option value="Course">Course</option>
+            <option value="Category_Pattern_Gen_BC_SC_ST">Category_Pattern_Gen_BC_SC_ST</option>
+            <option value="Category_Pattern_OBC_UR_SC_ST">Category_Pattern_OBC_UR_SC_ST</option>
+            <option value="Domicile">Domicile </option>    
+            <option value="Physically_Disabled">Physically_Disabled</option>    
+            <option value="Exam_Date">Exam_Date</option>
+            <option value="Exam_Date_OCR">Exam_Date_OCR</option>
+
+            <option value="Faculty">Faculty</option>  
+            <option value="Gender">Gender </option> 
+            <option value="Question_paper_Series_Code">Question_paper_Series_Code</option>
+            <option value="Roll_No_0_9">Roll_No_0_9</option>
+            <option value="Roll_No_1_0">Roll_No_1_0</option>
+            <option value="Roll_No_OCR">Roll_No_OCR</option>
+            <option value="Registration">Registration</option>
+            <option value="Registration_OCR">Registration_OCR</option>
+
+            <option value="Sitting">Sitting</option>
+            <option value="Stream_Horizontal">Stream_Horizontal_Arts_Comm_Sci</option>
+            <option value="Stream_Vertical">Stream_Vertical_Arts_Comm_Sci</option>
+            <option value="Subject_Code">Subject_Code</option>
+            <option value="Subject_Code_OCR">Subject_Code_OCR</option>
+
+
+            <option value="Stream_Others_Vocational_General_Honours">Stream_Others_Vocational_General_Honours</option>
+            <option value="Subject_PCM_PCB">Subject_PCM_PCB</option>    
+            <option value="Series">Series_Vertical_A_B_C_D</option> 
+            <option value="Series2">Series_Horizontal_A_B_C_D</option>
+            <option value="question_points_40">Question_points_40</option>
+            <option value="question_points_50">Question_points_50</option>
+            <option value="question_points_70">Question_points_70</option>
+            <option value="question_points_100">Question_points_100</option>
+            <option value="question_points_150">Question_points_150</option>
+            <option value="question_points_200">Question_points_200</option>
+          </select>
+        </li>
+        <li><button class="savebtn" onclick="saveData()">Save Data</button></li>
+      </ul> 
+    </div>
+    <div id="imageContainer"></div>
+     <div id="addedData"></div>
+
+    <script>
+      let imageContainer = document.getElementById("imageContainer");
+      let selectedROIs = [];
+      let currentVariable = "";
+      let zoomFactor = 1;
+      const selectedVar = {
+        Barcode: "Barcode",
+        "Booklet_No_0_9": "Booklet",
+        "Booklet_No_1_0": "Booklet",
+        "Booklet_No_OCR":"Booklet_ocr",
+        Booklet_Code_Series: "series",
+
+        College_code: "College_code",
+        College_code_OCR: " College_ocr ",
+
+        Course: "Course",
+        "Category_Pattern_Gen_BC_SC_ST": "category",
+        "Category_Pattern_OBC_UR_SC_ST": " category",
+        Domicle: "Domicle",
+        Physically_Disabled: "Disabled",
+        Exam_Date: "Exam_Date",
+        Exam_Date_OCR:"Exam_OCR",
+
+        Faculty: "Faculty",
+        Gender: "Gender",
+        Question_paper_Series_Code: "Q_series",
+
+        "Roll_No_0_9": "Roll",
+        "Roll_No_1_0": "Roll",
+        "Roll_No_OCR": "OCR",
+        Registration: "Registration",
+        Registration_OCR: "Registration_ocr",
+
+        Sitting: "Sitting",
+        "Stream_Horizontal": "Stream",
+        "Stream_Vertical": "Stream",
+        Subject_Code: "Subject_Code",
+        Subject_Code_OCR:"Subject_ocr",
+
+        "Stream_Others_Vocational_General_Honours": "stream",
+        Subject_PCM_PCB: "sub",
+        Series: "Series",
+        Series2:"Series",
+    
+        question_points_40: "Qs_Pts_40",
+        question_points_50: "Qs_Pts_50",
+        question_points_70: "Qs_Pts_70",
+        question_points_100: "Qs_Pts_100",
+        question_points_150: "Qs_Pts_150",
+        question_points_200: "Qs_Pts_200",
+      };
+      let varName;
+
+      function loadImage() {
+        let input = document.getElementById("imageInput");
+        if (input.files && input.files[0]) {
+          let reader = new FileReader();
+
+          reader.onload = function (e) {
+            let img = new Image();
+            img.src = e.target.result;
+
+            img.onload = function () {
+              imageContainer.style.width = img.width * zoomFactor + "px";
+              imageContainer.style.height = img.height * zoomFactor + "px";
+              imageContainer.style.backgroundImage = `url('${img.src}')`;
+
+              // Reset selectedROIs
+              selectedROIs = [];
+
+              // Enable manual ROI selection
+              imageContainer.addEventListener("mousedown", handleMouseDown);
+              imageContainer.addEventListener("mousemove", handleMouseMove);
+              imageContainer.addEventListener("mouseup", handleMouseUp);
+            };
+          };
+
+          reader.readAsDataURL(input.files[0]);
+        }
+      }
+
+      let isMouseDown = false;
+      let startX, startY;
+      let selectedROI;
+
+      function handleMouseDown(event) {
+        isMouseDown = true;
+        let divId;
+
+        startX = event.clientX + window.scrollX - imageContainer.offsetLeft;
+        startY = event.clientY + window.scrollY - imageContainer.offsetTop;
+
+        if (currentVariable !== "") {
+          let sno;
+          let nextSno;
+          let prevWidth;
+          let prevHeight;
+
+          if (selectedROIs.length > 0) {
+            // Find the highest existing sno for the current variable
+            const existingSnoArray = selectedROIs
+              .filter((roi) => roi.variable === currentVariable)
+              .map((roi) => {
+                console.log(roi, roi.width, roi.height);
+                prevWidth = roi.width;
+                prevHeight = roi.height;
+                return roi.sno;
+              });
+
+            nextSno =
+              existingSnoArray.length === 0
+                ? 1
+                : Array.from(
+                    { length: existingSnoArray.length + 2 },
+                    (_, i) => i + 1
+                  ).find((num) => !existingSnoArray.includes(num));
+          } else {
+            prevHeight = `0px`;
+            prevWidth = `0px`;
+            nextSno = 1; // If no elements are present, start with sno 1
+          }
+
+          // Create a new selectedROI element with initial position
+          selectedROI = document.createElement("div");
+          selectedROI.className = "selectedROI";
+          divId = currentVariable + nextSno;
+
+          selectedROI.id = divId;
+          selectedROI.style.left = startX + "px";
+          selectedROI.style.top = startY + "px";
+          selectedROI.style.width = `${prevWidth}px` || "0px";
+          selectedROI.style.height = `${prevHeight}px` || "0px";
+          selectedROI.addEventListener("click", handleROIClick); // Add click event listener
+
+          const deleteButton = document.createElement("button");
+          deleteButton.innerText = selectedVar[currentVariable] + nextSno;
+          deleteButton.style.float = "right";
+
+          // Append the delete button to the selectedROI
+          selectedROI.appendChild(deleteButton);
+          imageContainer.appendChild(selectedROI);
+        } else {
+          alert("Please Select a variable");
+          return;
+        }
+      }
+
+      function handleMouseMove(event) {
+        if (isMouseDown && selectedROI) {
+          let currentX =
+            event.clientX + window.scrollX - imageContainer.offsetLeft;
+          let currentY =
+            event.clientY + window.scrollY - imageContainer.offsetTop;
+
+          let width = (currentX - startX) / zoomFactor;
+          let height = (currentY - startY) / zoomFactor;
+
+          selectedROI.style.width = width + "px";
+          selectedROI.style.height = height + "px";
+        }
+      }
+
+      function handleMouseUp() {
+        isMouseDown = false;
+
+        if (selectedROI) {
+          let sno;
+
+          if (selectedROIs.length > 0) {
+            // Find the highest existing sno for the current variable
+            const existingSnoArray = selectedROIs
+              .filter((roi) => roi.variable === currentVariable)
+              .map((roi) => roi.sno);
+
+            sno =
+              existingSnoArray.length > 0
+                ? Math.max(...existingSnoArray) + 1
+                : 1;
+          } else {
+            sno = 1;
+          }
+
+          // Check for existing element with the same sno
+          const existingIndex = selectedROIs.findIndex(
+            (roi) => roi.variable === currentVariable && roi.sno === sno
+          );
+
+          if (existingIndex !== -1) {
+            // Update the existing element
+            selectedROIs[existingIndex] = {
+              variable: currentVariable,
+              sno: sno,
+              left: parseInt(selectedROI.style.left),
+              top: parseInt(selectedROI.style.top),
+              width: parseInt(selectedROI.style.width),
+              height: parseInt(selectedROI.style.height),
+            };
+          } else {
+            // Check for missing sno values and insert the element at the correct index
+            const existingSnoArray = selectedROIs
+              .filter((roi) => roi.variable === currentVariable)
+              .map((roi) => roi.sno);
+
+            for (let i = 1; i <= sno; i++) {
+              if (!existingSnoArray.includes(i)) {
+                // Insert the element at the correct index
+                const roiData = {
+                  variable: currentVariable,
+                  sno: i,
+                  left: parseInt(selectedROI.style.left),
+                  top: parseInt(selectedROI.style.top),
+                  width: parseInt(selectedROI.style.width),
+                  height: parseInt(selectedROI.style.height),
+                };
+                selectedROIs.push(roiData);
+                break;
+              }
+            }
+          }
+
+          selectedROI = null;
+
+          updateAddedData();
+        }
+      }
+
+      const deleteROI = (variable, sno) => {
+        const roiId = variable + sno;
+        const roiElement = document.getElementById(roiId);
+
+        const indexToDelete = selectedROIs.findIndex(
+          (roi) => roi.variable === variable && String(roi.sno) === String(sno)
+        );
+
+        if (indexToDelete !== -1) {
+          selectedROIs.splice(indexToDelete, 1);
+
+          if (roiElement) {
+            roiElement.remove();
+          }
+
+          // Update the added data display after removing the ROI
+          updateAddedData();
+        }
+      };
+
+      function updateAddedData() {
+        const addedDataContainer = document.getElementById("addedData");
+        const addedDataHTML = selectedROIs
+          .map((data) => {
+            const { variable, sno, ...rest } = data;
+            const newEle = { [variable]: sno, ...rest };
+            const deleteButtonStyle =
+              variable === "barcode_points"
+                ? "float: right;"
+                : "margin-top: 8px;";
+
+            return `
+        <div class="addedDataRow" id="${variable}${sno}">
+          <p>${JSON.stringify(newEle)}</p>
+          <div class="rowElement">
+            <button style="${deleteButtonStyle}" onclick="deleteROI('${
+              data.variable
+            }', '${data.sno}')">Delete</button>
+          </div>
+        </div>`;
+          })
+          .join("");
+        addedDataContainer.innerHTML = `<strong>Added Data:</strong>${addedDataHTML}`;
+      }
+
+      function saveData() {
+        const roiData = selectedROIs;
+        const transformedData = roiData.reduce((acc, roi) => {
+          const { variable, left, top, width, height } = roi;
+          if (!acc[variable]) {
+            acc[variable] = [];
+          }
+          acc[variable].push({ left, top, width, height });
+          return acc;
+        }, {});
+
+        // Convert the data to a JSON string
+        const jsonString = JSON.stringify(transformedData, null, 2);
+
+        // Create a Blob with the data
+        const blob = new Blob([jsonString], { type: "application/json" });
+
+        // Create a link element to trigger the download
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "annotation_data.txt"; // Set the desired file name
+
+        // Append the link to the document and trigger the download
+        document.body.appendChild(a);
+        a.click();
+
+        // Remove the link element from the document
+        document.body.removeChild(a);
+
+        // Optionally, you can also send the data to the server
+        // ...
+
+        // Clear selectedROIs and update added data display
+        selectedROIs = [];
+        updateAddedData();
+      }
+
+      function changeVariable() {
+        currentVariable = document.getElementById("variableSelect").value;
+      }
+
+      // Function to handle the click event on an existing ROI
+      function handleROIClick(event) {
+        if (window.confirm("Do you want to remove this ROI?")) {
+          // Remove the ROI from the DOM
+          event.target.remove();
+
+          // Remove the ROI from the selectedROIs array
+          selectedROIs = selectedROIs.filter(
+            (roi) => roi.variable + roi.sno !== event.target.id
+          );
+
+          // Update the added data display
+          updateAddedData();
+        }
+      }
+      document.addEventListener("keydown", function (event) {
+        // Check if Ctrl key and Z key are pressed simultaneously
+        if (event.ctrlKey && event.key === "z") {
+          const { variable, sno } = selectedROIs[selectedROIs.length - 1];
+          const roiId = variable + sno;
+          const roiElement = document.getElementById(roiId);
+          selectedROIs.pop();
+          if (roiElement) {
+            roiElement.remove();
+          }
+          updateAddedData();
+        }
+      });
+    </script>
+  </body>
+</html>
